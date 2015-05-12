@@ -109,6 +109,13 @@ namespace IntegrationComponent
             logger = new Logger(logfile);
             logger.log("Visualizer configurated");
             logger.log(String.Format("bb = {0}\r\ntemporalModel = {1}\r\ntkbNewFotAt = {2}", bb, temporalModel, tkbNewForAt));
+            if (!File.Exists(bb))
+            {
+                using (StreamWriter bbCreator = new StreamWriter(bb))
+                {
+                    bbCreator.Write("<bb><wm><facts></facts></wm></bb>");
+                }
+            }
             DropTemporalModel();
         }
 
