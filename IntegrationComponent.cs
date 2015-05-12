@@ -23,28 +23,42 @@ namespace IntegrationComponent
 
         public Logger(string path)
         {
-            _log = new StreamWriter(path);
+            if (path != null)
+                _log = new StreamWriter(path);
+            else
+                _log = null;
         }
 
         ~Logger()
         {
-            _log.Close();
-            _log.Dispose();
+            if(_log != null)
+            {
+                _log.Close();
+                _log.Dispose();
+            }
         }
 
         public void log(string text)
         {
-            _log.WriteLine(text);
-            _log.Flush();
+            if (_log != null)
+            {
+                _log.WriteLine(text);
+                _log.Flush();
+            }
         }
     }
 
     public class IntegrationComponent : IIntegrationComponent
     {
-        //public static System.Object m_broker;
         public static string m_name;
         public static IBroker m_broker;
+
         private static Logger logger;
+
+        private static string bb;
+        private static string temporalModel;
+        private static string tkbNewForAt;
+        private static string logfile;
 
         public string Name
         {
@@ -72,14 +86,36 @@ namespace IntegrationComponent
 
         public void Configurate(string Config)
         {
-            logger = new Logger("visualizer_log.txt");
+            bb = @"BB2.xml";
+            temporalModel = @"Model.xml";
+            tkbNewForAt = @"TKBnewforAT.xml";
+            logfile = null;
+
+            XDocument config = XDocument.Parse(Config);
+            XElement fileNameAT = config.Element("config").Element("FileNameAT");
+            XElement fileBB = config.Element("config").Element("BB");
+            XElement fileLog = config.Element("config").Element("Log");
+            XElement fileTemporalModel = config.Element("config").Element("Model");
+
+            if (fileNameAT != null)
+                tkbNewForAt = fileNameAT.Value;
+            if (fileBB != null)
+                bb = fileBB.Value;
+            if (fileLog != null)
+                logfile = fileLog.Value;
+            if (fileTemporalModel != null)
+                temporalModel = fileTemporalModel.Value;
+
+            logger = new Logger(logfile);
             logger.log("Visualizer configurated");
+            logger.log(String.Format("bb = {0}\r\ntemporalModel = {1}\r\ntkbNewFotAt = {2}", bb, temporalModel, tkbNewForAt));
             DropTemporalModel();
         }
 
         private void UpdateBB()
         {
-            IntegrationComponent.m_broker.BlackBoard.LoadFromFile(@"BB2.xml");
+            logger.log(String.Format("Loading data from {0} to BlackBoard", bb));
+            IntegrationComponent.m_broker.BlackBoard.LoadFromFile(bb);
         }
 
         private void ProcessOneTact()
@@ -92,8 +128,8 @@ namespace IntegrationComponent
 
             UpdateBB();
 
-            logger.log("Configuring ESKernel");
-            m_broker.ConfigurateObject("ESKernel", "<config><FileName>TKBnewforAT.xml</FileName></config>");
+            logger.log(String.Format("Configuring ESKernel with FileName {0}", tkbNewForAt));
+            m_broker.ConfigurateObject("ESKernel", String.Format("<config><FileName>{0}</FileName></config>", tkbNewForAt));
             logger.log("Sending message to ESKernel");
             m_broker.SendMessage("IntegrationComponent", "ESKernel", "<message ProcName='TKnowledgeBase.ClearWorkMemory' />", out res);
             logger.log("Sending message to ESKernel");
@@ -103,7 +139,8 @@ namespace IntegrationComponent
 
         private void DropTemporalModel()
         {
-            System.IO.File.Copy(@"BB2.xml", @"Model.xml", true);
+            logger.log(String.Format("Dropping temporal model ({0}) to tact 0", temporalModel));
+            System.IO.File.Copy(bb, temporalModel, true);
         }
 
         public void ProcessMessage(string SenderName, string MessageText, System.Object OleVariant)
