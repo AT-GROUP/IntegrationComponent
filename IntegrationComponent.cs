@@ -128,20 +128,23 @@ namespace IntegrationComponent
         private void ProcessOneTact()
         {
             Object res = new Object();
-            logger.log("Processing model tact");
+            System.Diagnostics.Stopwatch timer = System.Diagnostics.Stopwatch.StartNew();
+            logger.log(String.Format("Tact begin, {0}ms", timer.ElapsedMilliseconds));
+            logger.log(String.Format("Processing model tact, {0}ms", timer.ElapsedMilliseconds));
             m_broker.SendMessage("IntegrationComponent", "Model", "1", out res);
-            logger.log("Sending message to TemporalReasoner");
+            logger.log(String.Format("Sending message to TemporalReasoner, {0}ms", timer.ElapsedMilliseconds));
             m_broker.SendMessage("IntegrationComponent", "TemporalReasoner", "TSolve", out res);
 
             UpdateBB();
 
-            logger.log(String.Format("Configuring ESKernel with FileName {0}", tkbNewForAt));
+            logger.log(String.Format("Configuring ESKernel with FileName {0}, {1}ms", tkbNewForAt, timer.ElapsedMilliseconds));
             m_broker.ConfigurateObject("ESKernel", String.Format("<config><FileName>{0}</FileName></config>", tkbNewForAt));
-            logger.log("Sending message to ESKernel");
-            m_broker.SendMessage("IntegrationComponent", "ESKernel", "<message ProcName='TKnowledgeBase.ClearWorkMemory' />", out res);
-            logger.log("Sending message to ESKernel");
+            //logger.log(String.Format("Sending message to ESKernel, {0}ms", timer.ElapsedMilliseconds));
+            //m_broker.SendMessage("IntegrationComponent", "ESKernel", "<message ProcName='TKnowledgeBase.ClearWorkMemory' />", out res);
+            logger.log(String.Format("Sending message to ESKernel, {0}ms", timer.ElapsedMilliseconds));
             m_broker.SendMessage("IntegrationComponent", "ESKernel", "<message ProcName='TSolve' />", out res);
-            
+            timer.Stop();
+            logger.log(String.Format("Tact done, {0}ms", timer.ElapsedMilliseconds));
         }
 
         private void DropTemporalModel()
