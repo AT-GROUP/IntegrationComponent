@@ -59,6 +59,7 @@ namespace IntegrationComponent
         private static string temporalModel;
         private static string tkbNewForAt;
         private static string logfile;
+        private static bool clearWorkMemory;
 
         public string Name
         {
@@ -90,12 +91,14 @@ namespace IntegrationComponent
             temporalModel = @"Model.xml";
             tkbNewForAt = @"TKBnewforAT.xml";
             logfile = null;
+            clearWorkMemory = true;
 
             XDocument config = XDocument.Parse(Config);
             XElement fileNameAT = config.Element("config").Element("FileNameAT");
             XElement fileBB = config.Element("config").Element("BB");
             XElement fileLog = config.Element("config").Element("Log");
             XElement fileTemporalModel = config.Element("config").Element("Model");
+            XElement boolClearWorkMemory = config.Element("config").Element("ClearWorkMemory");
 
             if (fileNameAT != null)
                 tkbNewForAt = fileNameAT.Value;
@@ -105,6 +108,8 @@ namespace IntegrationComponent
                 logfile = fileLog.Value;
             if (fileTemporalModel != null)
                 temporalModel = fileTemporalModel.Value;
+            if (boolClearWorkMemory != null)
+                clearWorkMemory = bool.Parse(boolClearWorkMemory.Value);
 
             logger = new Logger(logfile);
             logger.log("Visualizer configurated");
@@ -139,9 +144,12 @@ namespace IntegrationComponent
 
             logger.log(String.Format("Configuring ESKernel with FileName {0}, {1}ms", tkbNewForAt, timer.ElapsedMilliseconds));
             m_broker.ConfigurateObject("ESKernel", String.Format("<config><FileName>{0}</FileName></config>", tkbNewForAt));
-            //logger.log(String.Format("Sending message to ESKernel, {0}ms", timer.ElapsedMilliseconds));
-            //m_broker.SendMessage("IntegrationComponent", "ESKernel", "<message ProcName='TKnowledgeBase.ClearWorkMemory' />", out res);
-            logger.log(String.Format("Sending message to ESKernel, {0}ms", timer.ElapsedMilliseconds));
+            if (clearWorkMemory)
+            {
+                logger.log(String.Format("Sending message to ESKernel ClearWorkMemory, {0}ms", timer.ElapsedMilliseconds));
+                m_broker.SendMessage("IntegrationComponent", "ESKernel", "<message ProcName='TKnowledgeBase.ClearWorkMemory' />", out res);
+            }
+            logger.log(String.Format("Sending message to ESKernel TSolve, {0}ms", timer.ElapsedMilliseconds));
             m_broker.SendMessage("IntegrationComponent", "ESKernel", "<message ProcName='TSolve' />", out res);
             timer.Stop();
             logger.log(String.Format("Tact done, {0}ms", timer.ElapsedMilliseconds));
